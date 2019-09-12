@@ -2,11 +2,11 @@ package cloudscapes;
 
 import java.util.concurrent.RecursiveTask;
 
-public class SumArray extends RecursiveTask <Float>  { //Integer men vi har floats?? byter till float
+public class SumArray extends RecursiveTask <Float>  { 
 	  int lo; // arguments
 	  int hi;
 	  float[] arr;
-	  static final int SEQUENTIAL_CUTOFF=40000;
+	  static final int SEQUENTIAL_CUTOFF=1000;
 
 	  int ans = 0; // result 
 	    

@@ -1,38 +1,30 @@
 package cloudscapes;
 import java.util.concurrent.RecursiveTask;
 
-public class oldAvergae extends RecursiveTask <int []>  {
+public class AverageOf extends RecursiveTask <int []>  {
 	static long startTime = 0;
 
 		 private int lo; // arguments
 		 private int hi;
-		 private int [] location = new int [3];
+		 private int [] location = new int [3]; //contains t, x, y values for the converted linear position
 		 private int dimx,dimy;
-		 private MyVector[][][] advection;
-		  CloudData clouddata;
-		  private float totalWindX= 0;
+		 private MyVector[][][] advection; //contains x & y wind, but also uplift for every position in the 3D grid
+		  private float totalWindX= 0; 
 		  private float totalWindY= 0;
 		 private int numberOfElements= 0;
-		  static final int SEQUENTIAL_CUTOFF=60000;
+		  static final int SEQUENTIAL_CUTOFF=1000;
 		  private float averageWindX = 0;
 		  private float averageWindY = 0;
 		  private float averageWind = 0;
 			private int [] classificationP; // cloud type per grid point, evolving over time
-
 		  
 
-		  private float ans = 0; // result 
 		    
-		  oldAvergae(MyVector[][][] m, int l, int h, int x, int y) { 
+		  AverageOf(MyVector[][][] m, int l, int h, int x, int y) { 
 		    lo=l; hi=h; advection=m; dimx = x; dimy = y;
 		    classificationP = new int [hi-lo];
 		  }
-			private static void tick(){
-				startTime = System.currentTimeMillis();
-			}
-			private static float tock(){
-				return (System.currentTimeMillis() - startTime) / 1000.0f; 
-			}
+	
 			// convert linear position into 3D location in simulation grid
 			void locate(int pos, int [] ind)
 			{
@@ -44,12 +36,13 @@ public class oldAvergae extends RecursiveTask <int []>  {
 
 		  protected int[] compute(){// return answer - instead of run
 			  if((hi-lo) < SEQUENTIAL_CUTOFF) {
-				  ans = 0;
 				
-			      for(int i=0; i < hi-lo; i++) { // tror att den försöker lägga första index på plats 2621440
-			    	  locate(i, location);
-
-			    		for (int counterX = 0; counterX < 3; counterX++) {
+			      for(int i=lo; i < hi; i++) { //for every element in the array
+			    	  locate(i, location); //locate the place to get t, x, y coordinates, then runs the same code as the sequential part.
+/*
+ * Calculating the classification for every small array
+ */
+			    		for (int counterX = 0; counterX < 3; counterX++) { 
 							for (int counterY = 0; counterY < 3; counterY++) {
 								if ((location[1] + counterX - 1) >= 0 && (location[1] + counterX -1) < dimx 
 										&& (location[2] + counterY - 1) >= 0 && (location[2] + counterY -1) <dimy) {
@@ -64,11 +57,11 @@ public class oldAvergae extends RecursiveTask <int []>  {
 						averageWindY = totalWindY /numberOfElements;
 	averageWind = (float)Math.sqrt(Math.pow(averageWindX, 2) + Math.pow(averageWindY, 2));
 						if (averageWind>Math.abs(advection[location[0]][location[1]][location[2]].u) && averageWind > 0.2) {
-							classificationP[i] = 1;
+							classificationP[i-lo] = 1;
 						}else if (Math.abs(advection[location[0]][location[1]][location[2]].u) > averageWind){
-							classificationP[i] = 0;
+							classificationP[i-lo] = 0;
 						}else {
-							classificationP[i] = 2;
+							classificationP[i-lo] = 2;
 						}
 						
 						totalWindX = 0;
@@ -81,11 +74,10 @@ public class oldAvergae extends RecursiveTask <int []>  {
 			      return classificationP;
 			  }
 			  else {
-				  oldAvergae left = new oldAvergae(advection ,lo,(hi+lo)/2, dimx, dimy);
-				  oldAvergae right= new oldAvergae(advection,(hi+lo)/2 ,hi, dimx, dimy);
+				  AverageOf left = new AverageOf(advection ,lo,(hi+lo)/2, dimx, dimy);
+				  AverageOf right= new AverageOf(advection,(hi+lo)/2 ,hi, dimx, dimy);
 				  
-				  // order of next 4 lines
-				  // essential – why?
+				  // order of next 5 lines important
 				  left.fork();
 				  int [] rightAns = right.compute();
 				  int[] leftAns  = left.join();
